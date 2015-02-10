@@ -211,6 +211,28 @@ void* Task::startTaskFunc(void* argument)
                 loadFile.append("/mars_saveOnClose.yaml");
                 cfg->loadConfig(loadFile.c_str());
             }      
+
+            // write configuration value overrides to cfg manager
+            // the difficulty is that we don't have the type
+            std::vector<SimulationProperty> props = marsArguments->mars_property_list;
+            for(std::vector<SimulationProperty>::iterator prop_it = props.begin(); prop_it != props.end(); ++prop_it){
+                // get or create property
+                cfg_manager::cfgPropertyStruct cfg_prop_struct;
+                cfg_prop_struct = cfg->getOrCreateProperty(prop_it->lib_name, prop_it->property_name, prop_it->value);
+
+                // TODO handle different property types
+
+                // overriding any defaults
+                LOG_DEBUG_S << "Setting property " <<
+                      prop_it->lib_name << ":" <<
+                      prop_it->property_name << " to " << 
+                      prop_it->value << ". Was " << 
+                      cfg_prop_struct.sValue.c_str() << ".";
+
+                cfg_prop_struct.sValue = prop_it->value;
+                cfg->setProperty(cfg_prop_struct);
+            }
+
         } else {
             LOG_ERROR_S << "Error casting to cfg_dfki";
         }
@@ -310,26 +332,6 @@ void* Task::startTaskFunc(void* argument)
     /*libManager->getAllLibraryNames(&lib_names);
     for(std::list<std::string>::iterator it = lib_names.begin(); it != lib_names.end(); ++it){
     }*/
-
-    // set mars properties, if specified
-    lib = libManager->getLibrary(std::string("cfg_manager"));
-    if(lib)
-    {
-        cfg_manager::CFGManagerInterface* cfg = dynamic_cast<cfg_manager::CFGManagerInterface*>(lib);
-        if(cfg){
-            std::vector<SimulationProperty> props = marsArguments->mars_property_list;
-            for(std::vector<SimulationProperty>::iterator prop_it = props.begin(); prop_it != props.end(); ++prop_it){
-                // get or create property
-                cfg_manager::cfgPropertyStruct cfg_prop_struct;
-                cfg_prop_struct = cfg->getOrCreateProperty(prop_it->lib_name, prop_it->property_name, prop_it->value);
-
-                // overriding any defaults
-                cfg_prop_struct.sValue = prop_it->value;
-                cfg->setProperty(cfg_prop_struct);
-                LOG_DEBUG("setting property %s\n", cfg_prop_struct.sValue.c_str());
-            }
-        }
-    }
 
     // GraphicsTimer allows to update the graphics interface 
     // every 10 ms
